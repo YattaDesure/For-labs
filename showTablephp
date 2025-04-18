@@ -1,25 +1,24 @@
 <?php
 require_once 'connection.php';
 
-// Определяем параметр сортировки
-$sortBy = isset($_GET['sortBy']) ? $_GET['sortBy'] : 'name'; // По умолчанию сортируем по названию
-$allowedColumns = ['name', 'price']; // Разрешенные столбцы для сортировки
+// Фильтр по цене
+$priceFilter = isset($_GET['price']) ? floatval($_GET['price']) : null;
 
-if (!in_array($sortBy, $allowedColumns)) {
-    $sortBy = 'name'; // Защита от SQL-инъекций
+// Базовый запрос
+$sql = "SELECT * FROM games";
+if ($priceFilter !== null) {
+    $sql .= " WHERE price <= $priceFilter";
 }
+$result = $conn->query($sql);
+?>
 
-// Форма для сортировки
-echo '
+<!-- Форма фильтрации -->
 <form action="showTable.php" method="GET">
-    <label>
-        <input type="radio" name="sortBy" value="name" ' . ($sortBy == 'name' ? 'checked' : '') . '> По названию
-    </label>
-    <label>
-        <input type="radio" name="sortBy" value="price" ' . ($sortBy == 'price' ? 'checked' : '') . '> По цене
-    </label>
-    <button type="submit">Сортировать</button>
+    <input type="number" name="price" step="0.01" placeholder="Макс. цена" value="<?= $priceFilter ?>">
+    <button type="submit">Фильтровать</button>
 </form>
+
+<!-- Таблица (остальной код из предыдущего примера) -->
 ';
 
 // Выборка данных с сортировкой
