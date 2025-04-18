@@ -1,0 +1,180 @@
+Вот обновленные файлы с реализацией всех требований:
+1. Файл showList.php с постраничным выводом и фильтрацией по категориям
+php
+Copy
+<?php
+require_once 'connection.php';
+
+// Подключение к серверу
+$conn = new mysqli($host, $user, $password, $database);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Параметры пагинации
+$N = 3; // Количество товаров на странице
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $N;
+
+// Фильтрация по категории
+$category = isset($_GET['category']) ? $_GET['category'] : null;
+
+// Получение общего количества товаров
+$countQuery = "SELECT COUNT(*) as total FROM games";
+if ($category) {
+    $countQuery .= " WHERE category = '" . $conn->real_escape_string($category) . "'";
+}
+$countResult = $conn->query($countQuery);
+$totalRows = $countResult->fetch_assoc()['total'];
+$totalPages = ceil($totalRows / $N);
+
+// Получение списка категорий
+$categoriesResult = $conn->query("SELECT DISTINCT category FROM games");
+
+// Основной запрос с пагинацией
+$sql = "SELECT * FROM games";
+if ($category) {
+    $sql .= " WHERE category = '" . $conn->real_escape_string($category) . "'";
+}
+$sql .= " LIMIT $offset, $N";
+
+$result = $conn->query($sql);
+?>
+
+<!-- Меню категорий -->
+<div class="categories">
+    <h3>Категории:</h3>
+    <a href="showList.php" <?= !$category ? 'style="font-weight:bold;color:red;"' : '' ?>>Все товары</a>
+    <?php while($cat = $categoriesResult->fetch_assoc()): ?>
+        <a href="showList.php?category=<?= urlencode($cat['category']) ?>" 
+           <?= $category == $cat['category'] ? 'style="font-weight:bold;color:red;"' : '' ?>>
+            <?= htmlspecialchars($cat['category']) ?>
+        </a>
+    <?php endwhile; ?>
+</div>
+
+<!-- Вывод товаров -->
+<?php
+if ($result->num_rows > 0) {
+    while($row = $result->fetch_assoc()) {
+        echo "<h2>" . htmlspecialchars($row['name']) . "</h2>";
+        echo "<p>" . htmlspecialchars($row['description']) . "</p>";
+        echo "<p>Цена: " . number_format($row['price'], 2, '.', '') . " руб.</p>";
+        echo "<hr>";
+    }
+
+    // Пагинация
+    echo "<div class='pagination'>";
+    for ($i = 1; $i <= $totalPages; $i++) {
+        $url = "showList.php?page=$i";
+        if ($category) {
+            $url .= "&category=" . urlencode($category);
+        }
+        $active = $i == $page ? 'style="font-weight:bold;"' : '';
+        echo "<a href=\"$url\" $active>$i</a> ";
+    }
+    echo "</div>";
+} else {
+    echo "Товары не найдены";
+}
+
+$conn->close();
+?>
+2. Файл showTable.php с сортировкой и фильтрацией
+php
+Copy
+<?php
+require_once 'connection.php';
+
+// Подключение к серверу
+$conn = mysqli_connect($host, $user, $password, $database);
+if (!$conn) {
+    die("Connection failed: " . mysqli_connect_error());
+}
+
+// Параметры фильтрации
+$filter = isset($_GET['filter']) ? $_GET['filter'] : null;
+$price = isset($_GET['price']) ? (float)$_GET['price'] : null;
+$name = isset($_GET['name']) ? $_GET['name'] : null;
+$description = isset($_GET['description']) ? $_GET['description'] : null;
+
+// Параметры сортировки
+$sortBy = isset($_GET['sortBy']) ? $_GET['sortBy'] : '';
+$validSortColumns = ['name', 'price'];
+$sortColumn = in_array($sortBy, $validSortColumns) ? $sortBy : '';
+
+// Форма фильтрации
+?>
+<form action="showTable.php" method="GET">
+    <div>
+        <label>Цена: <input type="number" name="price" step="0.01" value="<?= htmlspecialchars($price) ?>"></label>
+        <label>Название: <input type="text" name="name" value="<?= htmlspecialchars($name) ?>"></label>
+        <label>Описание: <input type="text" name="description" value="<?= htmlspecialchars($description) ?>"></label>
+    </div>
+    <div>
+        <button type="submit" name="filter" value="yes">Фильтровать</button>
+        <button type="submit" name="filter" value="no">Очистить</button>
+    </div>
+</form>
+
+<form action="showTable.php" method="GET">
+    <label>
+        <input type="radio" name="sortBy" value="name" <?= ($sortBy == 'name') ? 'checked' : '' ?>> По названию
+    </label>
+    <label>
+<input type="radio" name="sortBy" value="price" <?= ($sortBy == 'price') ? 'checked' : '' ?>> По цене
+    </label>
+    <button type="submit">Сортировать</button>
+</form>
+
+<?php
+// Формирование SQL-запроса
+$sql = "SELECT * FROM games WHERE 1=1";
+$conditions = [];
+
+// Сброс фильтра при нажатии "Очистить"
+if ($filter !== 'no') {
+    if ($price !== null && $price !== '') {
+        $conditions[] = "price <= " . (float)$price;
+    }
+    if (!empty($name)) {
+        $conditions[] = "name LIKE '%" . mysqli_real_escape_string($conn, $name) . "%'";
+    }
+    if (!empty($description)) {
+        $conditions[] = "description LIKE '%" . mysqli_real_escape_string($conn, $description) . "%'";
+    }
+}
+
+if (!empty($conditions)) {
+    $sql .= " AND " . implode(" AND ", $conditions);
+}
+
+if ($sortColumn) {
+    $sql .= " ORDER BY $sortColumn";
+}
+
+$result = mysqli_query($conn, $sql);
+
+if (mysqli_num_rows($result) > 0) {
+    echo "<table border='1'>";
+    echo "<tr>
+            <th><a href='showTable.php?sortBy=name'>Название</a></th>
+            <th>Описание</th>
+            <th><a href='showTable.php?sortBy=price'>Цена</a></th>
+          </tr>";
+    
+    while($row = mysqli_fetch_assoc($result)) {
+        echo "<tr>
+                <td>" . htmlspecialchars($row['name']) . "</td>
+                <td>" . htmlspecialchars($row['description']) . "</td>
+                <td>" . number_format($row['price'], 2, '.', '') . " руб.</td>
+              </tr>";
+    }
+    
+    echo "</table>";
+} else {
+    echo "Товары не найдены";
+}
+
+mysqli_close($conn);
+?>
