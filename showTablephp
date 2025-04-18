@@ -1,20 +1,46 @@
 <?php
 require_once 'connection.php';
 
-// Выборка данных из таблицы `games`
-$sql = "SELECT * FROM games";
+// Определяем параметр сортировки
+$sortBy = isset($_GET['sortBy']) ? $_GET['sortBy'] : 'name'; // По умолчанию сортируем по названию
+$allowedColumns = ['name', 'price']; // Разрешенные столбцы для сортировки
+
+if (!in_array($sortBy, $allowedColumns)) {
+    $sortBy = 'name'; // Защита от SQL-инъекций
+}
+
+// Форма для сортировки
+echo '
+<form action="showTable.php" method="GET">
+    <label>
+        <input type="radio" name="sortBy" value="name" ' . ($sortBy == 'name' ? 'checked' : '') . '> По названию
+    </label>
+    <label>
+        <input type="radio" name="sortBy" value="price" ' . ($sortBy == 'price' ? 'checked' : '') . '> По цене
+    </label>
+    <button type="submit">Сортировать</button>
+</form>
+';
+
+// Выборка данных с сортировкой
+$sql = "SELECT * FROM games ORDER BY $sortBy";
 $result = $conn->query($sql);
 
 if ($result->num_rows > 0) {
     echo "<table border='1'>";
-    echo "<tr><th>Название</th><th>Описание</th><th>Цена</th></tr>"; // Заголовки таблицы
+    // Заголовки таблицы с ссылками для сортировки
+    echo "<tr>
+            <th><a href='showTable.php?sortBy=name'>Название</a></th>
+            <th>Описание</th>
+            <th><a href='showTable.php?sortBy=price'>Цена</a></th>
+          </tr>";
 
     while ($row = $result->fetch_assoc()) {
-        echo "<tr>";
-        echo "<td>" . $row['name'] . "</td>";
-        echo "<td>" . $row['description'] . "</td>";
-        echo "<td>" . number_format($row['price'], 2, '.', '') . " ₽</td>";
-        echo "</tr>";
+        echo "<tr>
+                <td>" . htmlspecialchars($row['name']) . "</td>
+                <td>" . htmlspecialchars($row['description']) . "</td>
+                <td>" . number_format($row['price'], 2, '.', '') . " ₽</td>
+              </tr>";
     }
     echo "</table>";
 } else {
