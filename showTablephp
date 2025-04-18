@@ -1,0 +1,25 @@
+<?php
+require_once 'connection.php';
+
+// Выборка данных из таблицы `games`
+$sql = "SELECT * FROM games";
+$result = $conn->query($sql);
+
+if ($result->num_rows > 0) {
+    echo "<table border='1'>";
+    echo "<tr><th>Название</th><th>Описание</th><th>Цена</th></tr>"; // Заголовки таблицы
+
+    while ($row = $result->fetch_assoc()) {
+        echo "<tr>";
+        echo "<td>" . $row['name'] . "</td>";
+        echo "<td>" . $row['description'] . "</td>";
+        echo "<td>" . number_format($row['price'], 2, '.', '') . " ₽</td>";
+        echo "</tr>";
+    }
+    echo "</table>";
+} else {
+    echo "Товары не найдены.";
+}
+
+$conn->close();
+?>
