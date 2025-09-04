@@ -1,0 +1,252 @@
+-- Создание таблицы ролей
+CREATE TABLE Roles (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Name NVARCHAR(50) NOT NULL UNIQUE
+);
+
+-- Заполнение ролями
+INSERT INTO Roles (Name) VALUES ('Студент'), ('Учитель');
+
+-- Создание таблицы пользователей
+CREATE TABLE Users (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Username NVARCHAR(100) NOT NULL UNIQUE,
+    Email NVARCHAR(255) NOT NULL UNIQUE,
+    UserPassword NVARCHAR(100) NOT NULL,
+    RoleId INT NOT NULL,
+    CONSTRAINT FK_Users_Roles FOREIGN KEY (RoleId) REFERENCES Roles(Id)
+);
+
+-- Создание таблицы материалов
+CREATE TABLE Materials (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Title NVARCHAR(255) NOT NULL,
+    Description NVARCHAR(MAX),
+    FilePath NVARCHAR(500) NOT NULL,
+    UploadedById INT NOT NULL,
+    CONSTRAINT FK_Materials_Users FOREIGN KEY (UploadedById) REFERENCES Users(Id)
+);
+
+-- Создание таблицы прогресса по материалам
+CREATE TABLE MaterialProgress (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    UserId INT NOT NULL,
+    MaterialId INT NOT NULL,
+    TimeSpentSeconds INT DEFAULT 0,
+    CONSTRAINT FK_MaterialProgress_Users FOREIGN KEY (UserId) REFERENCES Users(Id),
+    CONSTRAINT FK_MaterialProgress_Materials FOREIGN KEY (MaterialId) REFERENCES Materials(Id)
+);
+
+-- Создание таблицы тем тестов
+CREATE TABLE TestTopics (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    Title NVARCHAR(255) NOT NULL,
+    Description NVARCHAR(MAX)
+);
+
+-- Заполнение темы теста
+INSERT INTO TestTopics (Title, Description) 
+VALUES ('Как познакомиться с девушкой', 'Тест по теме знакомства с девушками');
+
+-- Создание таблицы вопросов
+CREATE TABLE Questions (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    TopicId INT NOT NULL,
+    Text NVARCHAR(MAX) NOT NULL,
+    CreatedById INT NOT NULL,
+    CONSTRAINT FK_Questions_TestTopics FOREIGN KEY (TopicId) REFERENCES TestTopics(Id),
+    CONSTRAINT FK_Questions_Users FOREIGN KEY (CreatedById) REFERENCES Users(Id)
+);
+
+-- Создание таблицы ответов
+CREATE TABLE Answers (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    QuestionId INT NOT NULL,
+    Text NVARCHAR(MAX) NOT NULL,
+    IsCorrect BIT NOT NULL DEFAULT 0,
+    CONSTRAINT FK_Answers_Questions FOREIGN KEY (QuestionId) REFERENCES Questions(Id)
+);
+
+-- Создание таблицы результатов тестов
+CREATE TABLE TestResults (
+    Id INT IDENTITY(1,1) PRIMARY KEY,
+    UserId INT NOT NULL,
+    TopicId INT NOT NULL,
+    Score INT NOT NULL,
+    Percentage DECIMAL(5,2) NOT NULL,
+    CompletedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT FK_TestResults_Users FOREIGN KEY (UserId) REFERENCES Users(Id),
+    CONSTRAINT FK_TestResults_TestTopics FOREIGN KEY (TopicId) REFERENCES TestTopics(Id)
+);
+
+-- Создаем пользователя-учителя
+INSERT INTO Users (Username, Email, UserPassword, RoleId) 
+VALUES ('teacher1', 'teacher@example.com', 'hashed_password', 2);
+
+-- Добавляем 20 вопросов (начиная с ID 1)
+INSERT INTO Questions (TopicId, Text, CreatedById) VALUES
+(1, 'Какое место считается оптимальным для первого знакомства?', 1),
+(1, 'Какой временной промежуток идеален для первой встречи?', 1),
+(1, 'Что следует сделать перед подходом к девушке?', 1),
+(1, 'Как начать разговор наиболее естественно?', 1),
+(1, 'Какая тема для первого разговора считается неудачной?', 1),
+(1, 'Как правильно поддерживать зрительный контакт?', 1),
+(1, 'Что делать, если девушка кажется незаинтересованной?', 1),
+(1, 'Какой дистанции следует придерживаться при первом знакомстве?', 1),
+(1, 'Как вести себя при знакомстве в социальных сетях?', 1),
+(1, 'Что важно учитывать при выборе одежды для знакомства?', 1),
+(1, 'Как правильно предложить обменяться контактами?', 1),
+(1, 'Что делать, если получили отказ при знакомстве?', 1),
+(1, 'Как понять, что девушке интересно общение?', 1),
+(1, 'Какие жесты показывают открытость к общению?', 1),
+(1, 'Как закончить первую встречу на позитивной ноте?', 1),
+(1, 'Что не стоит делать при первом знакомстве?', 1),
+(1, 'Как выбрать подходящий момент для знакомства?', 1),
+(1, 'Что важнее всего при первом впечатлении?', 1),
+(1, 'Как вести себя в случае неловкой паузы?', 1),
+(1, 'Когда лучше предложить следующую встречу?', 1);
+
+-- Добавляем ответы для каждого вопроса (начиная с ID 1)
+-- Вопрос 1
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(1, 'Шумный ночной клуб', 0),
+(1, 'Тихая кофейня или парк', 1),
+(1, 'Кинотеатр', 0),
+(1, 'Переполненный торговый центр', 0);
+
+-- Вопрос 2
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(2, '5-10 минут', 0),
+(2, '30-60 минут', 1),
+(2, '2-3 часа', 0),
+(2, 'Целый день', 0);
+
+-- Вопрос 3
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(3, 'Привести себя в порядок', 1),
+(3, 'Выпить для храбрости', 0),
+(3, 'Придумать сложный комплимент', 0),
+(3, 'Позвать друзей для поддержки', 0);
+
+-- Вопрос 4
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(4, 'Спросить о времени или дороге', 1),
+(4, 'Сразу предложить встретиться', 0),
+(4, 'Рассказать о себе', 0),
+(4, 'Сделать дорогой подарок', 0);
+
+-- Вопрос 5
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(5, 'Обсуждение погоды', 0),
+(5, 'Вопросы о работе/учебе', 0),
+(5, 'Личные финансовые вопросы', 1),
+(5, 'Общие интересы', 0);
+
+-- Вопрос 6
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(6, 'Непрерывно смотреть в глаза', 0),
+(6, 'Смотреть на переносицу', 0),
+(6, 'Периодически встречаться взглядом', 1),
+(6, 'Избегать зрительного контакта', 0);
+
+-- Вопрос 7
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(7, 'Настаивать на общении', 0),
+(7, 'Сразу уйти', 0),
+(7, 'Вежливо закончить разговор', 1),
+(7, 'Начать критиковать', 0);
+
+-- Вопрос 8
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(8, 'Менее 50 см', 0),
+(8, '50-120 см', 1),
+(8, '2-3 метра', 0),
+(8, 'Как можно дальше', 0);
+
+-- Вопрос 9
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(9, 'Отправить сразу несколько сообщений', 0),
+(9, 'Написать вежливое первое сообщение', 1),
+(9, 'Отправить friend request без сообщения', 0),
+(9, 'Написать поздно ночью', 0);
+
+-- Вопрос 10
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(10, 'Только брендовые вещи', 0),
+(10, 'Чистую и опрятную одежду', 1),
+(10, 'Яркие кричащие цвета', 0),
+(10, 'Строгий костюм', 0);
+
+-- Вопрос 11
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(11, 'Требовать номер телефона', 0),
+(11, 'Предложить обменяться контактами', 1),
+(11, 'Дать только свой номер', 0),
+(11, 'Спросить адрес', 0);
+
+-- Вопрос 12
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(12, 'Расстроиться и уйти', 0),
+(12, 'Начать спорить', 0),
+(12, 'Вежливо принять отказ', 1),
+(12, 'Попробовать еще раз сразу', 0);
+
+-- Вопрос 13
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(13, 'Она постоянно смотрит в телефон', 0),
+(13, 'Задает встречные вопросы', 1),
+(13, 'Отворачивается', 0),
+(13, 'Смотрит по сторонам', 0);
+
+-- Вопрос 14
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(14, 'Скрещенные руки', 0),
+(14, 'Открытые ладони', 1),
+(14, 'Руки в карманах', 0),
+(14, 'Постукивание пальцами', 0);
+
+-- Вопрос 15
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(15, 'Резко закончить разговор', 0),
+(15, 'Поблагодарить за общение', 1),
+(15, 'Назначить следующую встречу сразу', 0),
+(15, 'Уйти без слов', 0);
+
+-- Вопрос 16
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(16, 'Быть самим собой', 0),
+(16, 'Хвастаться достижениями', 1),
+(16, 'Слушать собеседника', 0),
+(16, 'Улыбаться', 0);
+
+-- Вопрос 17
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(17, 'Когда она спешит', 0),
+(17, 'Когда она одна и расслаблена', 1),
+(17, 'Когда она с друзьями', 0),
+(17, 'Когда она разговаривает по телефону', 0);
+
+-- Вопрос 18
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(18, 'Дорогая одежда', 0),
+(18, 'Чувство юмора', 0),
+(18, 'Уверенность и искренность', 1),
+(18, 'Внешность', 0);
+
+-- Вопрос 19
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(19, 'Начать нервничать', 0),
+(19, 'Задать открытый вопрос', 1),
+(19, 'Сразу уйти', 0),
+(19, 'Сделать вид, что так и надо', 0);
+
+-- Вопрос 20
+INSERT INTO Answers (QuestionId, Text, IsCorrect) VALUES
+(20, 'Сразу после первой встречи', 0),
+(20, 'Через 1-2 дня', 1),
+(20, 'Через неделю', 0),
+(20, 'Ждать, когда она напишет', 0);
+
+-- Проверяем, что все добавилось правильно
+SELECT 'Questions count: ' + CAST(COUNT(*) AS VARCHAR) FROM Questions;
+SELECT 'Answers count: ' + CAST(COUNT(*) AS VARCHAR) FROM Answers;
